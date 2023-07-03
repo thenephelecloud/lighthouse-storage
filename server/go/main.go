@@ -12,7 +12,7 @@ import (
 	"path/filepath"
 )
 
-const maxUploadSize = 2000 * 1024 * 1024 // 2 gb
+const maxUploadSize = 250 * 1024 * 1024 // 250 mb
 
 func main() {
 	var home, err = os.UserHomeDir()
