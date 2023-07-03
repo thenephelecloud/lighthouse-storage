@@ -96,7 +96,7 @@ func uploadFileHandler() http.HandlerFunc {
 			renderError(w, "CANT_WRITE_FILE", http.StatusInternalServerError)
 			return
 		}
-		w.Write([]byte(fmt.Sprintf("SUCCESS - use /files/%v to access the file", newFileName)))
+		w.Write([]byte(fmt.Sprintf("SUCCESS - use http://localhost:8080/files/%v to access the file", newFileName)))
 	})
 }
 
