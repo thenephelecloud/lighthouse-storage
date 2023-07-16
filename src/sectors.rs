@@ -1,14 +1,17 @@
-use crate::metadata::StorageMeta;
-use crate::metadata::SECTOR_CACHE_DIR;
+use crate::metadata::{STORAGE_DIR};
 use std::fs::File;
 use std::io::Write;
 use cid::{Cid, Error};
 use std::fs::OpenOptions;
+use std::path::PathBuf;
 // filecoin
-use filecoin_proofs_api::{RegisteredSealProof};
+use filecoin_proofs_api::{RegisteredSealProof, PieceInfo};
 
-pub struct Epoch(u64);
+use crate::consensus::Address;
+use crate::consensus::slot_epoch::{Epoch, Slot};
+use crate::consensus::nephele_spec::{SealTicket, SealSeed};
 
+#[derive(Clone, Copy, Debug)]
 pub enum SectorStatus {
 	Empty,
 	Staged,
@@ -16,6 +19,7 @@ pub enum SectorStatus {
 	Failed,
 }
 
+#[derive(Clone, Copy, Debug)]
 pub enum DealStatus {
 	Unknown,
 	Active,
@@ -34,10 +38,11 @@ pub struct DealInfo  {
 	duration: u64,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone)]
 pub struct SectorInfo {
 	sector_id: u64,
 	status: SectorStatus,
+	storage_dir: PathBuf,
 	comm_d: Cid,
 	comm_r: Cid,
 	proof: Vec<u8>,
@@ -79,22 +84,23 @@ impl Default for SectorInfo {
 			num_tries: 0,
 			rep_update_cid: Cid::default(),
 			proof_type: RegisteredSealProof::StackedDrg2KiBV1_1,
-			seal_start: Epoch(0),
-			seal_end: Epoch(0),
+			seal_start: Epoch::new(0),
+			seal_end: Epoch::new(0),
 			pledge_amount: 0,
-			seal_next_renewal: Epoch(0),
-			seal_renewal_deadline: Epoch(0),
+			seal_next_renewal: Epoch::new(0),
+			seal_renewal_deadline: Epoch::new(0),
 		}
 	}
 }
 
 pub mod sector {
 
-	use crate::metadata::StorageMeta;
+	use crate::sectors::SectorInfo;
+	use crate::metadata::{StorageMeta, STORAGE_DIR, SECTOR_CONTENT_DIR, SECTOR_CACHE_DIR};
 	use cid::multihash::{Code, MultihashDigest};
 	use cid::Cid;
 	use std::convert::TryFrom;
-	use std::fs::File;
+	use std::fs::{self, File, OpenOptions};
 	use std::io::Read;
 	use filecoin_proofs::{PieceInfo, UnpaddedBytesAmount, generate_piece_commitment, write_and_preprocess, add_piece, compute_comm_d};
 	use filecoin_proofs_api::RegisteredSealProof;
@@ -126,7 +132,7 @@ pub mod sector {
 	}
 
 	pub fn generate_comm_d(sector_size: u64, pieces: &[PieceInfo]) -> Result<Cid> {
-		let comm_d = compute_comm_d(RegisteredSealProof::StackedDrg2KiBV1, sector_size, pieces);
+		let comm_d = compute_comm_d(filecoin_proofs::SectorSize(sector_size), pieces);
 		Ok(generate_cid(&comm_d.unwrap()))
 	}
 
@@ -146,23 +152,23 @@ pub mod sector {
 		Ok(result.unwrap())
 	}
 
-	pub fn start(storage_meta: StorageMeta) -> Result<(), Error> {
+	pub fn prove(storage_meta: StorageMeta) -> Result<(), Error> {
 		let content_home = storage_meta.storage_dir.join(SECTOR_CONTENT_DIR);
 		let sector_cache = storage_meta.storage_dir.join(SECTOR_CACHE_DIR);
-		let files = fs::read_dir(home).unwrap();
+		let mut sector_info = SectorInfo::default();
+		let files = fs::read_dir(sector_cache.clone()).unwrap();
 		for file in files {
 			// make piece
-			let mut piece_fd = OpenOptions::new().read(true).write(true).create_new(true).open(file);
-			let piece = read_piece(&piece_fd);
+			let mut piece_fd = OpenOptions::new().read(true).write(true).create_new(true).open(file.unwrap().path())?;
+			let mut piece = read_piece(&piece_fd);
 			let cid = generate_cid(&piece.as_mut().unwrap().commitment);
-			let piece_info: PieceInfo = PieceInfo {piece: piece.unwrap(), cid: cid};
-			let sector_info = SectorInfo::default();
-			sector_info.sector_pieces.push(sector_info);
+			sector_info.sector_pieces.push(piece.unwrap());
 			let mut sector_fd = OpenOptions::new().read(true).write(true).create_new(true).open(sector_cache.join("sector"))?;
 			piece_fd.sync_all();
 			sector_fd.sync_all();
 			let write_res = write_sector(&piece_fd, &sector_fd).unwrap();
 		}
+		Ok(())
 	}
 }
 

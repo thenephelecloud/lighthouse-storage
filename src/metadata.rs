@@ -1,6 +1,7 @@
 use std::fs;
 use std::path::PathBuf;
 use serde::{Serialize, Deserialize};
+use crate::consensus::eth_spec::EthSpecId;
 
 pub static STORAGE_DIR : &str = "validator_storage";
 pub static SECTOR_CACHE_DIR : &str = "sector-cache";
@@ -69,7 +70,7 @@ impl StorageMeta {
     	match spec {
 			EthSpecId::Mainnet => Self::mainnet(),
 			EthSpecId::Minimal => Self::minimal(),
-			EthSpecId::Testnet => Self::testnet(),
+			EthSpecId::Gnosis => Self::testnet(),
 		}
     }
 }

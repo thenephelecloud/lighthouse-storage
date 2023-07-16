@@ -5,8 +5,10 @@
 //! It also provides some additional structs which are useful to other components of `lighthouse`
 //! (e.g., `Eth2Config`).
 
-use types::Eth2Config;
+use crate::consensus::Eth2Config;
 use storage::StorageMeta;
+
+mod EthSpecId;
 
 /// The "extended" core configuration of a Lighthouse beacon node.
 /// The extension is limited to including a storagemeta struct.

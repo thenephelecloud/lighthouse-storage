@@ -19,3 +19,16 @@ storage-proofs-core = "14.0.0"
 anyhow = "1.0.70"
 notify = "6.0.1"
 futures = "0.3.28"
+ethereum-types = "0.14.1"
+serde_derive = "1.0.171"
+ssz_types = "0.5.4"
+safe_arith = {path = "src/consensus/safe_arith"}
+int_to_bytes = { path = "src/consensus/int_to_bytes" }
+arbitrary = { version = "1.3.0", features = ["derive"] }
+serde_utils = "0.6.2"
+ethereum_serde_utils = "0.5.1"
+serde_yaml = "0.9.22"
+tree_hash = { version = "0.5.2", features = ["arbitrary"] }
+ethereum_ssz = "0.5.3"
+fmt = "0.1.0"
+slog = "2.7.0"

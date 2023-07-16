@@ -10,10 +10,11 @@ use notify::{Config, Event, EventKind, RecommendedWatcher, RecursiveMode, Watche
 use std::path::Path;
 
 use crate::metadata::{StorageMeta, STORAGE_DIR, SECTOR_CONTENT_DIR};
-use crate::sectors::{start};
+use crate::sectors::sector::prove;
 
-//mod metadata;
-//mod sectors;
+mod metadata;
+mod sectors;
+mod consensus;
 
 fn main() -> Result<(), Box<dyn std::error::Error>>{
     println!("Initializing directories...");
@@ -30,14 +31,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>>{
     println!("Done!");
 
     println!("Starting sector checks...");
-    sectors::start(storage_meta.clone());
+    prove(storage_meta.clone());
 /*  Actix content server, will be implemented in the future (needs more performance tweaking)
 	Run the go fileserver in the go directory to test the content server
     content_server::start_server(storage_meta);
 
 */
-	let watch_path = storage_meta.storage_dir.join(SECTOR_CONTENT_DIR);
-	futures::executor::block_on(async {
+	/*
+    futures::executor::block_on(async {
 	    if let res = async_watch(watch_path).await {
 	    	match res {
 	    		Err(_) => println!("Error watching path!"),
@@ -45,10 +46,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>>{
 	    	}
 	    	if res.event.kind == EventKind::Create {
 	    		println!("New file detected, starting a sector update...");
-	    		sectors::start(storage_meta.clone());
+	    		start(storage_meta.clone());
 	    	}
 	    }
 	});
+    */
 
 	Ok(())
 }
@@ -71,7 +73,7 @@ fn async_watcher() -> notify::Result<(RecommendedWatcher, Receiver<notify::Resul
     Ok((watcher, rx))
 }
 
-async fn async_watch<P: AsRef<Path>>(path: P) -> notify::Result<Event> {
+async fn async_watch<P: AsRef<Path>>(path: P) -> notify::Result<()> {
     let (mut watcher, mut rx) = async_watcher()?;
 
     // Add a path to be watched. All files and directories at that path and
@@ -85,6 +87,5 @@ async fn async_watch<P: AsRef<Path>>(path: P) -> notify::Result<Event> {
         }
     }
 
-
-    Ok(event)
+    Ok(())
 }
